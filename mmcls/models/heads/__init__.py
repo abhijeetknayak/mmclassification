@@ -7,9 +7,11 @@ from .multi_label_head import MultiLabelClsHead
 from .multi_label_linear_head import MultiLabelLinearClsHead
 from .stacked_head import StackedLinearClsHead
 from .vision_transformer_head import VisionTransformerClsHead
+from .dyn1_head import GatingFnLinearHead
+from .lin_head import LinClsHead
 
 __all__ = [
     'ClsHead', 'LinearClsHead', 'StackedLinearClsHead', 'MultiLabelClsHead',
     'MultiLabelLinearClsHead', 'VisionTransformerClsHead', 'DeiTClsHead',
-    'ConformerHead'
+    'ConformerHead', 'GatingFnLinearHead', 'LinClsHead'
 ]

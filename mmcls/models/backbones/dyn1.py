@@ -4,12 +4,61 @@ from mmcv.cnn import build_conv_layer, build_norm_layer
 
 from ..builder import BACKBONES
 from .resnet import ResNet
-import time
 
-total_time = 0.0
+class SoftGateI(nn.Module):
+    """This module has the same structure as FFGate-I.
+    In training, adopt continuous gate output. In inference phase,
+    use discrete gate outputs"""
+    def __init__(self, pool_size=5, channel=10):
+        super(SoftGateI, self).__init__()
+        self.pool_size = pool_size
+        self.channel = channel
+
+        self.maxpool = nn.MaxPool2d(2)
+        self.conv1 = conv3x3(channel, channel)
+        self.bn1 = nn.BatchNorm2d(channel)
+        self.relu1 = nn.ReLU(inplace=True)
+
+        # adding another conv layer
+        self.conv2 = conv3x3(channel, channel, stride=2)
+        self.bn2 = nn.BatchNorm2d(channel)
+        self.relu2 = nn.ReLU(inplace=True)
+
+        pool_size = math.floor(pool_size/2)  # for max pooling
+        pool_size = math.floor(pool_size/2 + 0.5)  # for conv stride = 2
+
+        self.avg_layer = nn.AvgPool2d(pool_size)
+        self.linear_layer = nn.Conv2d(in_channels=channel, out_channels=2,
+                                      kernel_size=1, stride=1)
+        self.prob_layer = nn.Softmax()
+        self.logprob = nn.LogSoftmax()
+
+    def forward(self, x):
+        x = self.maxpool(x)
+        x = self.conv1(x)
+        x = self.bn1(x)
+        x = self.relu1(x)
+
+        x = self.conv2(x)
+        x = self.bn2(x)
+        x = self.relu2(x)
+
+        x = self.avg_layer(x)
+        x = self.linear_layer(x).squeeze()
+        softmax = self.prob_layer(x)
+        logprob = self.logprob(x)
+
+        x = softmax[:, 1].contiguous()
+        x = x.view(x.size(0), 1, 1, 1)
+
+        if not self.training:
+            x = (x > 0.5).float()
+        return x, logprob
+
+
 
 @BACKBONES.register_module()
-class ResNet_CIFAR(ResNet):
+class Dyn1(ResNet):
     """ResNet backbone for CIFAR.
 
     Compared to standard ResNet, it uses `kernel_size=3` and `stride=1` in
@@ -52,9 +101,14 @@ class ResNet_CIFAR(ResNet):
     """
 
     def __init__(self, depth, deep_stem=False, **kwargs):
-        super(ResNet_CIFAR, self).__init__(
+        super(Dyn1, self).__init__(
             depth, deep_stem=deep_stem, **kwargs)
         assert not self.deep_stem, 'ResNet_CIFAR do not support deep_stem'
+        self.gating_network1 = nn.Sequential(
+            nn.MaxPool2d(2, 2),
+            nn.Conv2d()
+
+        )
 
     def _make_stem_layer(self, in_channels, base_channels):
         self.conv1 = build_conv_layer(
@@ -71,20 +125,13 @@ class ResNet_CIFAR(ResNet):
         self.relu = nn.ReLU(inplace=True)
 
     def forward(self, x):
-        global total_time
-        st = time.process_time()
         x = self.conv1(x)
         x = self.norm1(x)
         x = self.relu(x)
-        outs = [x]
-
+        outs = []
         for i, layer_name in enumerate(self.res_layers):
             res_layer = getattr(self, layer_name)
             x = res_layer(x)
             outs.append(x)
-        
-        et = time.process_time()
-        total_time += (et - st)
-        print(f"Total time: {total_time}")
         
         return tuple(outs)

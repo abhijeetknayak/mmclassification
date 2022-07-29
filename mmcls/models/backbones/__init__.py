@@ -33,6 +33,12 @@ from .twins import PCPVT, SVT
 from .van import VAN
 from .vgg import VGG
 from .vision_transformer import VisionTransformer
+from .dyn_early_exits import EarlyExitNet
+from .dyn_gating_fn import GatingFnNet
+from .dyn_gating_fn_2 import GatingFnNet2
+from .dyn_gating_fn_pretrained import GatingFnNewPretrained
+from .dyn_gating_fn_2_test import GatingFnNet2Test
+from .dyn_gating_fn_test import GatingFnNetTest
 
 __all__ = [
     'LeNet5', 'AlexNet', 'VGG', 'RegNet', 'ResNet', 'ResNeXt', 'ResNetV1d',
@@ -42,5 +48,6 @@ __all__ = [
     'Conformer', 'MlpMixer', 'DistilledVisionTransformer', 'PCPVT', 'SVT',
     'EfficientNet', 'ConvNeXt', 'HRNet', 'ResNetV1c', 'ConvMixer',
     'CSPDarkNet', 'CSPResNet', 'CSPResNeXt', 'CSPNet', 'RepMLPNet',
-    'PoolFormer', 'DenseNet', 'VAN'
+    'PoolFormer', 'DenseNet', 'VAN', 'EarlyExitNet', 'GatingFnNet', 'GatingFnNet2', 
+    'GatingFnNet2Test', 'GatingFnNetTest', 'GatingFnNewPretrained'
 ]
