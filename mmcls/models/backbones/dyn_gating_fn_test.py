@@ -12,8 +12,9 @@ import time
 
 from ..builder import BACKBONES
 from .resnet import ResLayer, ResNet
+
 skipped = [0, 0, 0, 0, 0, 0, 0, 0]
-total_time = 0.0
+
 def conv3x3(in_planes, out_planes, stride=1):
     "3x3 convolution with padding"
     return nn.Conv2d(in_planes, out_planes, kernel_size=3, stride=stride,
@@ -85,8 +86,6 @@ class SoftGateII(nn.Module):
         self.prob_layer = nn.Softmax()
 
     def forward(self, x):
-        global total_time
-        st = time.process_time()
         x = self.conv1(x)
         x = self.bn1(x)
         x = self.relu1(x)
@@ -101,9 +100,6 @@ class SoftGateII(nn.Module):
         x = x.view(x.size(0), 1, 1, 1)
         if True: #not self.training:
             x = (x > 0.5).float()
-        et = time.process_time()
-        total_time += (et - st)
-        print(f"Gating took {et - st} seconds")
         return x
 
 @BACKBONES.register_module()
@@ -159,12 +155,12 @@ class GatingFnNetTest(ResNet):
         self.channels = [64, 64, 64, 128, 128, 256, 256, 512]
         # self.pool_size = [8, 8, 8, 4, 4, 2, 2, 1] # With SoftGateI
         self.pool_size = [16, 16, 16, 8, 8, 4, 4, 2]
+        self.pool_size = [32, 32, 32, 16, 16, 8, 8, 4]  #TinyImgNet
 
         for idx, channel in enumerate(self.channels):
             exec(f"self.gating_fn{idx} = SoftGateII(pool_size={self.pool_size[idx]}, channel={channel})")
 
-
-            
+        
     def _make_stem_layer(self, in_channels, base_channels):
         self.conv1 = build_conv_layer(
             self.conv_cfg,
@@ -180,13 +176,9 @@ class GatingFnNetTest(ResNet):
         self.relu = nn.ReLU(inplace=True)
 
     def forward(self, x):
-        global total_time
-        start_time = time.process_time()
         x = self.conv1(x)
         x = self.norm1(x)
         x = self.relu(x)
-
-        total_time += (time.process_time() - start_time)
 
         gating_idx = 0
 
@@ -194,7 +186,8 @@ class GatingFnNetTest(ResNet):
             res_layer = getattr(self, layer_name)
 
             for idx in range(2):
-                gate_out = eval(f"self.gating_fn{gating_idx}")(x)                
+                # gate_out = eval(f"self.gating_fn{gating_idx}")(x)
+                gate_out = torch.Tensor([1.0]).to('cuda')           
 
                 identity = x
                 if gate_out == 0.0:
@@ -203,10 +196,7 @@ class GatingFnNetTest(ResNet):
                 
 
                 if self.is_train or gate_out == 1.0:
-                    start_time = time.process_time()
                     x = res_layer[idx](x)
-                    et = time.process_time()
-                    print(f"Res Layer took {et - start_time} seconds")
                     # x = gate_out.expand_as(out) * out + \
                     # (1 - gate_out).expand_as(identity) * identity
 
@@ -215,14 +205,8 @@ class GatingFnNetTest(ResNet):
                         identity = res_layer[idx].downsample(identity)
                     x = identity
                 
-                total_time += (time.process_time() - start_time)
-
                 gating_idx += 1
 
-        # end_time = time.process_time()
-        # print(f"This took {end_time - start_time} seconds")
-        # total_time += (end_time - start_time)
-        print(f"Total time: {total_time}")
 
         print(skipped)
         return x

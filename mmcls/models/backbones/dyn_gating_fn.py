@@ -85,19 +85,19 @@ class SoftGateII(nn.Module):
         self.prob_layer = nn.Softmax()
 
     def forward(self, x):
+        # ipdb.set_trace()
         x = self.conv1(x)
         x = self.bn1(x)
         x = self.relu1(x)
 
         x = self.avg_layer(x)
-        # x = self.linear_layer(x)
         x = torch.flatten(x, start_dim=1)
 
         softmax = self.prob_layer(x)
 
         x = softmax[:, 1].contiguous()
         x = x.view(x.size(0), 1, 1, 1)
-        if True: #not self.training:
+        if True:
             x = (x > 0.5).float()
         return x
 
@@ -153,13 +153,14 @@ class GatingFnNet(ResNet):
         # Number of channels after two convolution layers
         self.channels = [64, 64, 64, 128, 128, 256, 256, 512]
         # self.pool_size = [8, 8, 8, 4, 4, 2, 2, 1] # With SoftGateI
-        self.pool_size = [16, 16, 16, 8, 8, 4, 4, 2]
+
+        self.pool_size = [16, 16, 16, 8, 8, 4, 4, 2]  # CIFAR
+        self.pool_size = [32, 32, 32, 16, 16, 8, 8, 4]  #TinyImgNet
 
         for idx, channel in enumerate(self.channels):
             exec(f"self.gating_fn{idx} = SoftGateII(pool_size={self.pool_size[idx]}, channel={channel})")
 
-
-            
+           
     def _make_stem_layer(self, in_channels, base_channels):
         self.conv1 = build_conv_layer(
             self.conv_cfg,
@@ -168,6 +169,7 @@ class GatingFnNet(ResNet):
             kernel_size=3,
             stride=1,
             padding=1,
+        # x = self.linear_layer(x)
             bias=False)
         self.norm1_name, norm1 = build_norm_layer(
             self.norm_cfg, base_channels, postfix=1)
@@ -175,8 +177,6 @@ class GatingFnNet(ResNet):
         self.relu = nn.ReLU(inplace=True)
 
     def forward(self, x):
-        # global total_time
-        # start_time = time.process_time()
         x = self.conv1(x)
         x = self.norm1(x)
         x = self.relu(x)
@@ -190,8 +190,6 @@ class GatingFnNet(ResNet):
                 gate_out = eval(f"self.gating_fn{gating_idx}")(x)
 
                 identity = x
-                # if gate_out == 0.0:
-                #     skipped[gating_idx] += 1
                 if res_layer[idx].downsample is not None:
                     identity = res_layer[idx].downsample(identity)
 
@@ -205,10 +203,4 @@ class GatingFnNet(ResNet):
 
                 gating_idx += 1
 
-        # end_time = time.process_time()
-        # print(f"This took {end_time - start_time} seconds")
-        # total_time += (end_time - start_time)
-        # print(f"Total time: {total_time}")
-
-        # print(skipped)
         return x

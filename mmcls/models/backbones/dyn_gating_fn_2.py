@@ -102,12 +102,6 @@ class SoftGateII(nn.Module):
         # print(x)
         if True: #not self.training:
             x = (x > 0.5).float()
-            # self.eps *= self.eps_decay
-
-            # print(f"EPS: {self.eps}")
-
-            # if self.eps <= 0.5:
-            #     self.eps = 1.0
         return x
 
 @BACKBONES.register_module()
@@ -204,7 +198,7 @@ class GatingFnNet2(ResNet):
             if res_layer[0].downsample is not None:
                 identity = res_layer[0].downsample(identity)
             
-            scaling = (4 - gating_idx) / 4
+            scaling = 1.0#(4 - gating_idx) / 4
             
             if self.is_train or gate_out == 1.0:
                 x = res_layer(x)

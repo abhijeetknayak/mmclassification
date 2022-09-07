@@ -39,6 +39,8 @@ from .dyn_gating_fn_2 import GatingFnNet2
 from .dyn_gating_fn_pretrained import GatingFnNewPretrained
 from .dyn_gating_fn_2_test import GatingFnNet2Test
 from .dyn_gating_fn_test import GatingFnNetTest
+from .dyn_gating_fn_pretrained_test import GatingFnNewPretrainedTest
+from .dyn_channel_gating import ChannelGatingNet
 
 __all__ = [
     'LeNet5', 'AlexNet', 'VGG', 'RegNet', 'ResNet', 'ResNeXt', 'ResNetV1d',
@@ -49,5 +51,6 @@ __all__ = [
     'EfficientNet', 'ConvNeXt', 'HRNet', 'ResNetV1c', 'ConvMixer',
     'CSPDarkNet', 'CSPResNet', 'CSPResNeXt', 'CSPNet', 'RepMLPNet',
     'PoolFormer', 'DenseNet', 'VAN', 'EarlyExitNet', 'GatingFnNet', 'GatingFnNet2', 
-    'GatingFnNet2Test', 'GatingFnNetTest', 'GatingFnNewPretrained'
+    'GatingFnNet2Test', 'GatingFnNetTest', 'GatingFnNewPretrained',
+    'GatingFnNewPretrainedTest', 'ChannelGatingNet'
 ]

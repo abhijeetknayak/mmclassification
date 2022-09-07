@@ -14,7 +14,7 @@ from .base_backbone import BaseBackbone
 from ..builder import BACKBONES
 from .resnet import ResLayer, ResNet
 
-skipped = [0, 0, 0, 0, 0, 0, 0, 0]
+skipped = [0, 0, 0, 0]
 total_time = 0.0
 
 def conv3x3(in_planes, out_planes, stride=1):
@@ -62,13 +62,12 @@ class SoftGateII(nn.Module):
         return x
 
 @BACKBONES.register_module()
-class GatingFnNewPretrained(BaseBackbone):
+class GatingFnNewPretrainedTest(BaseBackbone):
     def __init__(self, is_train=True, init_cfg=None, **kwargs):
-        super(GatingFnNewPretrained, self).__init__(init_cfg)
-        self.resnet = torch.hub.load('pytorch/vision:v0.10.0', 'resnet18', pretrained=False)
+        super(GatingFnNewPretrainedTest, self).__init__(init_cfg)
+        self.resnet = torch.hub.load('pytorch/vision:v0.10.0', 'resnet18', pretrained=True)
         # for params in self.resnet.parameters():
         #     params.requires_grad = False
-
 
         self.is_train = is_train
 
@@ -92,27 +91,28 @@ class GatingFnNewPretrained(BaseBackbone):
         gating_idx = 0
 
         for i in range(1, 5):
-            # gate_out = torch.Tensor([1.0]).to('cuda')
-            gate_out = eval(f"self.gating_fn{gating_idx}")(x)
-            # if gate_out == 0.0:
-            #     skipped[gating_idx] += 1
+            # gate_out = eval(f"self.gating_fn{gating_idx}")(x)
+            gate_out = torch.Tensor([1.0]).to('cuda')
+            if gate_out == 0.0:
+                skipped[gating_idx] += 1
 
             identity = x
-            if eval(f"self.resnet.layer{i}[0]").downsample is not None:
-                identity = eval(f"self.resnet.layer{i}[0].downsample")(identity)
-            if self.is_train or gate_out == 1.0:
+
+            if gate_out == 1.0:
                 x = eval(f"self.resnet.layer{i}")(x)
-                x = gate_out.expand_as(x) * x + \
-                    (1 - gate_out).expand_as(identity) * identity
+                # x = gate_out.expand_as(x) * x + \
+                #     (1 - gate_out).expand_as(identity) * identity
             else:
+                if eval(f"self.resnet.layer{i}[0]").downsample is not None:
+                    identity = eval(f"self.resnet.layer{i}[0].downsample")(identity)
                 x = identity
 
             gating_idx += 1
             
-        # end_time = time.process_time()
-        # print(f"This took {end_time - start_time} seconds")
-        # total_time += (end_time - start_time)
-        # print(f"Total time: {total_time}")
+        end_time = time.process_time()
+        print(f"This took {end_time - start_time} seconds")
+        total_time += (end_time - start_time)
+        print(f"Total time: {total_time}")
 
-        # print(skipped)
+        print(skipped)
         return x

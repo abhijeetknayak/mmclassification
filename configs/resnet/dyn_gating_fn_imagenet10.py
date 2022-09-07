@@ -1,14 +1,15 @@
 # dataset settings
-dataset_type = 'TinyImageNet'
+dataset_type = 'ImageNet10'
 
 img_norm_cfg = dict(
-    mean=[0.4802, 0.4481, 0.3975], 
-    std=[0.2770, 0.2691, 0.2821],
+    mean=[0.4878, 0.4746, 0.4434], 
+    std=[0.2738, 0.2643, 0.2922],
     to_rgb=False)
 
 train_pipeline = [
     dict(type='LoadImageFromFile'),
-    dict(type='RandomCrop', size=64, padding=4),
+    dict(type='RandomResizedCrop', size=64),
+    # dict(type='RandomCrop', size=64, padding=4),
     dict(type='RandomFlip', flip_prob=0.5, direction='horizontal'),
     dict(type='Normalize', **img_norm_cfg),
     dict(type='ImageToTensor', keys=['img']),
@@ -17,6 +18,7 @@ train_pipeline = [
 ]
 test_pipeline = [
     dict(type='LoadImageFromFile'),
+    dict(type='RandomResizedCrop', size=64),
     dict(type='Normalize', **img_norm_cfg),
     dict(type='ImageToTensor', keys=['img']),
     dict(type='Collect', keys=['img'])
@@ -25,17 +27,16 @@ data = dict(
     samples_per_gpu=16,
     workers_per_gpu=2,
     train=dict(
-        type=dataset_type, data_prefix='data/tiny-imagenet-200/train',
+        type=dataset_type, data_prefix='data/imagenet-10/train',
         pipeline=train_pipeline),
     val=dict(
         type=dataset_type,
-        data_prefix='data/tiny-imagenet-200/val/images',
-        ann_file = 'data/tiny-imagenet-200/val/annotations.txt',
+        data_prefix='data/imagenet-10/val',
         pipeline=test_pipeline,
         test_mode=True),
     test=dict(
         type=dataset_type,
-        data_prefix='data/tiny-imagenet-200/test/images',
+        data_prefix='data/imagenet-10/val',
         pipeline=test_pipeline,
         test_mode=True))
 
@@ -48,7 +49,7 @@ model = dict(
     neck=dict(type='GAP', img_size=1),
     head=dict(
         type='GatingFnLinearHead',
-        num_classes=200,
+        num_classes=10,
         in_channels=512,
         loss=dict(type='CrossEntropyLoss', loss_weight=1.0),
         topk=(1, 5),
@@ -75,7 +76,7 @@ log_config = dict(
 
 dist_params = dict(backend='nccl')
 log_level = 'INFO'
-load_from = 'tiny/best_accuracy_top-1_epoch_15.pth'
+load_from = None
 resume_from = None
 workflow = [('train', 1)]
-work_dir = 'tiny_gate_16' 
+work_dir = 'imgnet' 

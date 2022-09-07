@@ -22,7 +22,7 @@ test_pipeline = [
     dict(type='Collect', keys=['img'])
 ]
 data = dict(
-    samples_per_gpu=16,
+    samples_per_gpu=1,
     workers_per_gpu=2,
     train=dict(
         type=dataset_type, data_prefix='data/tiny-imagenet-200/train',
@@ -35,15 +35,17 @@ data = dict(
         test_mode=True),
     test=dict(
         type=dataset_type,
-        data_prefix='data/tiny-imagenet-200/test/images',
+        # data_prefix='data/tiny-imagenet-200/test/images',
+        data_prefix='data/tiny-imagenet-200/val/images',
+        ann_file = 'data/tiny-imagenet-200/val/annotations.txt',
         pipeline=test_pipeline,
         test_mode=True))
 
 model = dict(
     type='ImageClassifier',
     backbone=dict(
-        type='GatingFnNewPretrained',
-        is_train=True,
+        type='GatingFnNewPretrainedTest',
+        is_train=False,
         depth=18),
     neck=dict(type='GAP', img_size=1),
     head=dict(
@@ -58,8 +60,8 @@ model = dict(
 optimizer = dict(type='SGD', lr=0.01, momentum=0.9, weight_decay=0.0001)
 optimizer_config = dict(grad_clip=None)
 # learning policy
-lr_config = dict(policy='step', step=10, gamma=0.9)
-runner = dict(type='EpochBasedRunner', max_epochs=200)
+lr_config = dict(policy='step', step=[50, 75])
+runner = dict(type='EpochBasedRunner', max_epochs=120)
 
 checkpoint_config = dict(interval=5)
 
@@ -75,7 +77,7 @@ log_config = dict(
 
 dist_params = dict(backend='nccl')
 log_level = 'INFO'
-load_from = 'tiny/best_accuracy_top-1_epoch_15.pth'
+load_from = None
 resume_from = None
 workflow = [('train', 1)]
-work_dir = 'tiny_gate_16' 
+work_dir = 'tiny_imagenet_gating' 
